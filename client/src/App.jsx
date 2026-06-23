@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { BellRing, Info, Zap } from 'lucide-react';
 import { copyText, fetchPreview, pasteText } from './api.js';
+import { isPasteTooLarge, PASTE_TOO_LARGE_ERROR } from './limits.js';
 import { createWebSocket } from './ws.js';
 import Preview from './components/Preview.jsx';
 import PasteButton from './components/PasteButton.jsx';
@@ -36,6 +37,11 @@ export default function App() {
 
       if (!clipboardText) {
         setMessage('Clipboard is empty.');
+        return;
+      }
+
+      if (isPasteTooLarge(clipboardText)) {
+        setMessage(PASTE_TOO_LARGE_ERROR);
         return;
       }
 

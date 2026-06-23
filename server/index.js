@@ -4,13 +4,17 @@ import websocket from '@fastify/websocket';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getPreview, hasText, setText, takeText } from './store.js';
+import { isPasteTooLarge, MAX_PASTE_BYTES, PASTE_TOO_LARGE_ERROR } from './limits.js';
 import { addClient, broadcast } from './ws.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3000;
 const STATIC_DIR = process.env.STATIC_DIR || path.join(__dirname, '..', 'client', 'dist');
 
-const app = Fastify({ logger: true });
+const app = Fastify({
+  logger: true,
+  bodyLimit: MAX_PASTE_BYTES + 65536,
+});
 
 await app.register(websocket);
 
@@ -28,6 +32,10 @@ app.post('/api/paste', async (request, reply) => {
 
   if (typeof text !== 'string' || text.length === 0) {
     return reply.code(400).send({ error: 'text is required' });
+  }
+
+  if (isPasteTooLarge(text)) {
+    return reply.code(413).send({ error: PASTE_TOO_LARGE_ERROR });
   }
 
   setText(text);

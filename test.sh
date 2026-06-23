@@ -83,6 +83,20 @@ empty_paste_status="$(
 )"
 assert_status "$empty_paste_status" "400" "empty paste is rejected"
 
+oversized_paste_status="$(
+  node -e "
+    const text = 'x'.repeat(2 * 1024 * 1024 + 1);
+    fetch('${BASE_URL}/api/paste', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    }).then((response) => {
+      process.stdout.write(String(response.status));
+    });
+  "
+)"
+assert_status "$oversized_paste_status" "413" "oversized paste is rejected"
+
 paste_response="$(
   curl -sf -X POST "${BASE_URL}/api/paste" \
     -H 'Content-Type: application/json' \
