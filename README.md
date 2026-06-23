@@ -4,6 +4,8 @@
 
 FlashClip is a one-time clipboard relay for browsers and devices. Paste text on one machine, then copy it on another. Nothing is written to disk.
 
+Repo: https://github.com/LoganRickert/flash-clip
+
 ## Quick start
 
 Pull and run the published image:
@@ -15,10 +17,10 @@ docker run --rm -p 4089:3000 ghcr.io/loganrickert/flash-clip:latest
 
 Open http://localhost:4089
 
-Or build locally:
+Or build and run locally:
 
 ```bash
-docker build -t flash-clip .
+./build.sh
 ./run.sh
 ```
 
@@ -27,7 +29,7 @@ Open http://localhost:4089
 To run in the foreground on port 3000 instead:
 
 ```bash
-docker build -t flash-clip .
+./build.sh
 docker run --rm -p 3000:3000 flash-clip
 ```
 
@@ -40,6 +42,8 @@ Open http://localhost:3000
 3. **Copy**: fetches the full string, writes it to your clipboard, and deletes it from the server.
 
 Each paste can only be copied once. If the server or container stops, anything waiting to be copied is lost.
+
+Open FlashClip in multiple browsers or tabs at the same time. When someone pastes, every connected page gets a live alert and updated preview over WebSockets.
 
 ## Local development
 
@@ -61,7 +65,7 @@ In a second terminal, start the frontend:
 pnpm dev:client
 ```
 
-The Vite dev server proxies `/api` requests to the backend on port 3000.
+The Vite dev server proxies `/api` and WebSocket requests to the backend on port 3000.
 
 Build the client for production:
 
@@ -72,9 +76,10 @@ pnpm build
 ## Project layout
 
 ```text
-client/   React frontend (Vite)
-server/   Fastify API and static file serving
-run.sh    Starts the Docker container on port 4089
+client/    React frontend (Vite)
+server/    Fastify API, WebSockets, and static file serving
+build.sh   Builds the Docker image as flash-clip:latest
+run.sh     Recreates the Docker container on port 4089
 ```
 
 ## API
@@ -84,9 +89,20 @@ run.sh    Starts the Docker container on port 4089
 | POST | `/api/paste` | Store clipboard text. Body: `{ "text": "..." }` |
 | GET | `/api/preview` | Return the masked preview if text is stored |
 | POST | `/api/copy` | Return the full text once, then delete it |
+| WS | `/api/ws` | Live preview updates when text is pasted or copied |
+
+WebSocket messages use JSON, for example:
+
+```json
+{ "type": "preview", "event": "pasted", "preview": "use**********", "hasContent": true }
+```
 
 ## CI
 
 GitHub Actions runs on push and pull requests. It builds the client, builds the Docker image, and runs a smoke test against the API.
 
 On push to `main`, CI also publishes the Docker image to GitHub Container Registry as `ghcr.io/loganrickert/flash-clip:latest`. The first time, you may need to set the package visibility to public under GitHub Packages settings.
+
+## License
+
+MIT. See [LICENSE.md](LICENSE.md).
