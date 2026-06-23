@@ -6,7 +6,16 @@ FlashClip is a one-time clipboard relay for browsers and devices. Paste text on 
 
 ## Quick start
 
-Build and run with Docker:
+Pull and run the published image:
+
+```bash
+docker pull ghcr.io/loganrickert/flash-clip:latest
+docker run --rm -p 4089:3000 ghcr.io/loganrickert/flash-clip:latest
+```
+
+Open http://localhost:4089
+
+Or build locally:
 
 ```bash
 docker build -t flash-clip .
@@ -79,3 +88,5 @@ run.sh    Starts the Docker container on port 4089
 ## CI
 
 GitHub Actions runs on push and pull requests. It builds the client, builds the Docker image, and runs a smoke test against the API.
+
+On push to `main`, CI also publishes the Docker image to GitHub Container Registry as `ghcr.io/loganrickert/flash-clip:latest`. The first time, you may need to set the package visibility to public under GitHub Packages settings.
