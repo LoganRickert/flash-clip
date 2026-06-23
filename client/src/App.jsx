@@ -6,6 +6,15 @@ import Preview from './components/Preview.jsx';
 import PasteButton from './components/PasteButton.jsx';
 import CopyButton from './components/CopyButton.jsx';
 
+function isEditableTarget(target) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  const tag = target.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable;
+}
+
 export default function App() {
   const [preview, setPreview] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -15,6 +24,53 @@ export default function App() {
   const refreshPreview = useCallback(async () => {
     const data = await fetchPreview();
     setPreview(data.preview);
+  }, []);
+
+  const handlePaste = useCallback(async () => {
+    setMessage('');
+    setAlert(false);
+    setBusy(true);
+
+    try {
+      const clipboardText = await navigator.clipboard.readText();
+
+      if (!clipboardText) {
+        setMessage('Clipboard is empty.');
+        return;
+      }
+
+      const data = await pasteText(clipboardText);
+      setPreview(data.preview);
+      setMessage('Ready to copy on another device.');
+    } catch (error) {
+      setMessage(error.message || 'Paste failed.');
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  const handleCopy = useCallback(async () => {
+    setMessage('');
+    setAlert(false);
+    setBusy(true);
+
+    try {
+      const data = await copyText();
+
+      if (!data) {
+        setPreview(null);
+        setMessage('Nothing to copy.');
+        return;
+      }
+
+      await navigator.clipboard.writeText(data.text);
+      setPreview(null);
+      setMessage('Copied to clipboard.');
+    } catch (error) {
+      setMessage(error.message || 'Copy failed.');
+    } finally {
+      setBusy(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -57,52 +113,45 @@ export default function App() {
     };
   }, [alert]);
 
-  async function handlePaste() {
-    setMessage('');
-    setAlert(false);
-    setBusy(true);
-
-    try {
-      const clipboardText = await navigator.clipboard.readText();
-
-      if (!clipboardText) {
-        setMessage('Clipboard is empty.');
+  useEffect(() => {
+    function onKeyDown(event) {
+      if (isEditableTarget(event.target)) {
         return;
       }
 
-      const data = await pasteText(clipboardText);
-      setPreview(data.preview);
-      setMessage('Ready to copy on another device.');
-    } catch (error) {
-      setMessage(error.message || 'Paste failed.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleCopy() {
-    setMessage('');
-    setAlert(false);
-    setBusy(true);
-
-    try {
-      const data = await copyText();
-
-      if (!data) {
-        setPreview(null);
-        setMessage('Nothing to copy.');
+      const modifier = event.ctrlKey || event.metaKey;
+      if (!modifier || event.altKey || event.shiftKey) {
         return;
       }
 
-      await navigator.clipboard.writeText(data.text);
-      setPreview(null);
-      setMessage('Copied to clipboard.');
-    } catch (error) {
-      setMessage(error.message || 'Copy failed.');
-    } finally {
-      setBusy(false);
+      const key = event.key.toLowerCase();
+
+      if (key === 'v') {
+        if (busy) {
+          return;
+        }
+
+        event.preventDefault();
+        handlePaste();
+        return;
+      }
+
+      if (key === 'c') {
+        if (busy || !preview) {
+          return;
+        }
+
+        event.preventDefault();
+        handleCopy();
+      }
     }
-  }
+
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [busy, preview, handlePaste, handleCopy]);
 
   return (
     <main className="app">
