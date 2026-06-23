@@ -7,9 +7,7 @@ HOST_PORT=4089
 CONTAINER_PORT=3000
 
 if docker ps -a --format '{{.Names}}' | grep -qx "$CONTAINER_NAME"; then
-  docker start "$CONTAINER_NAME" >/dev/null
-  echo "Started existing container $CONTAINER_NAME on http://localhost:$HOST_PORT"
-  exit 0
+  docker rm -f "$CONTAINER_NAME" >/dev/null
 fi
 
 docker run -d \
