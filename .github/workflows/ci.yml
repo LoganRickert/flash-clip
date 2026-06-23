@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build client
+        run: pnpm build
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t flash-clip .
+
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+
+          docker run -d --name flash-clip-test -p 3000:3000 flash-clip
+
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/api/preview >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          curl -sf -X POST http://localhost:3000/api/paste \
+            -H 'Content-Type: application/json' \
+            -d '{"text":"test123456"}' \
+            | grep -q 'tes\*\*\*\*\*\*\*\*\*\*'
+
+          curl -sf http://localhost:3000/api/preview \
+            | grep -q '"hasContent":true'
+
+          curl -sf -X POST http://localhost:3000/api/copy \
+            | grep -q 'test123456'
+
+          curl -sf -X POST http://localhost:3000/api/copy \
+            | grep -q 'nothing to copy'
+
+          curl -sf http://localhost:3000/ \
+            | grep -q 'FlashClip'
+
+          docker stop flash-clip-test

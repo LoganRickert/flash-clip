@@ -1,0 +1,12 @@
+{
+  "name": "flash-clip",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.15.0",
+  "scripts": {
+    "dev:server": "pnpm --filter flash-clip-server dev",
+    "dev:client": "pnpm --filter flash-clip-client dev",
+    "build": "pnpm --filter flash-clip-client build",
+    "start": "pnpm --filter flash-clip-server start"
+  }
+}
