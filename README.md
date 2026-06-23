@@ -26,6 +26,8 @@ Or build and run locally:
 
 Open http://localhost:4089
 
+`run.sh` removes any existing `flash-clip` container and starts a fresh one on port 4089 with `--restart unless-stopped`.
+
 To run in the foreground on port 3000 instead:
 
 ```bash
@@ -35,6 +37,12 @@ docker run --rm -p 3000:3000 flash-clip
 
 Open http://localhost:3000
 
+Run the Docker smoke tests:
+
+```bash
+./test.sh
+```
+
 ## How it works
 
 1. **Paste**: reads your clipboard and sends the text to the server. The string is stored encrypted in memory.
@@ -43,7 +51,20 @@ Open http://localhost:3000
 
 Each paste can only be copied once. If the server or container stops, anything waiting to be copied is lost.
 
+Paste size is limited to **2 MB**.
+
 Open FlashClip in multiple browsers or tabs at the same time. When someone pastes, every connected page gets a live alert and updated preview over WebSockets.
+
+### Keyboard shortcuts
+
+Click the page to focus it, then use:
+
+| Shortcut | Action |
+| -------- | ------ |
+| Ctrl+V / Cmd+V | Paste from your clipboard to the server |
+| Ctrl+C / Cmd+C | Copy from the server to your clipboard |
+
+These match the Paste and Copy buttons.
 
 ## Local development
 
@@ -80,13 +101,14 @@ client/    React frontend (Vite)
 server/    Fastify API, WebSockets, and static file serving
 build.sh   Builds the Docker image as flash-clip:latest
 run.sh     Recreates the Docker container on port 4089
+test.sh    Builds the image and runs API smoke tests in throwaway Docker
 ```
 
 ## API
 
 | Method | Path | Description |
 | ------ | ---- | ----------- |
-| POST | `/api/paste` | Store clipboard text. Body: `{ "text": "..." }` |
+| POST | `/api/paste` | Store clipboard text. Body: `{ "text": "..." }`. Max 2 MB. Returns 413 if too large. |
 | GET | `/api/preview` | Return the masked preview if text is stored |
 | POST | `/api/copy` | Return the full text once, then delete it |
 | WS | `/api/ws` | Live preview updates when text is pasted or copied |
