@@ -1,5 +1,7 @@
 # FlashClip
 
+![FlashClip](flash-clip-image.jpg)
+
 FlashClip is a one-time clipboard relay for browsers and devices. Paste text on one machine, then copy it on another. Nothing is written to disk.
 
 ## Quick start
